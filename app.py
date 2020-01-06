@@ -10,8 +10,9 @@ import flask
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.plotly as py
+import plotly as py
 import plotly.graph_objs as go
+import plotly.express as px
 
 from dash.dependencies import Input, Output, State
 from plotly import tools
@@ -40,13 +41,10 @@ currency_pair_data = {
     "USDCHF": pd.read_csv(
         DATA_PATH.joinpath("USDCHF.csv"), index_col=1, parse_dates=["Date"]
     ),
-    "TL/MWh": pd.read_csv(
-        DATA_PATH.joinpath("PTF-03012020.csv"), index_col=1, parse_dates=["Date"]
-    ),
 }
 
 # Currency pairs
-currencies = ["EURUSD", "USDCHF", "USDJPY", "GBPUSD", "TL/MWh"]
+currencies = ["EURUSD", "USDCHF", "USDJPY", "GBPUSD"]
 
 # API Requests for news div
 news_requests = requests.get(
@@ -58,7 +56,7 @@ def update_news():
     json_data = news_requests.json()["articles"]
     df = pd.DataFrame(json_data)
     df = pd.DataFrame(df[["title", "url"]])
-    max_rows = 10
+    max_rows = 5
     return html.Div(
         children=[
             html.P(className="p-news", children="Headlines"),
@@ -197,7 +195,6 @@ def replace_row(currency_pair, index, bid, ask):
         if index != len(currency_pair_data[currency_pair])
         else first_ask_bid(currency_pair, datetime.datetime.now())
     )  # if not the end of the dataset we retrieve next dataset row
-    print(new_row[1])
     return [
         html.P(
             currency_pair, id=currency_pair, className="three-col"  # currency pair name
@@ -636,7 +633,7 @@ def chart_div(pair):
                     html.Span(
                         id=pair + "menu_button",
                         className="inline-block chart-title",
-                        children=f"{pair} ☰",
+                        children="".join(pair),
                         n_clicks=0,
                     ),
                     # Dropdown and close button float right
@@ -785,9 +782,9 @@ app.layout = html.Div(
         # Interval component for live clock
         dcc.Interval(id="interval", interval=1 * 1000, n_intervals=0),
         # Interval component for ask bid updates
-        dcc.Interval(id="i_bis", interval=1 * 2000, n_intervals=0),
+        dcc.Interval(id="i_bis", interval=5 * 1000, n_intervals=0),
         # Interval component for graph updates
-        dcc.Interval(id="i_tris", interval=1 * 5000, n_intervals=0),
+        dcc.Interval(id="i_tris", interval=5 * 1000, n_intervals=0),
         # Interval component for graph updates
         dcc.Interval(id="i_news", interval=1 * 60000, n_intervals=0),
         # Left Panel Div
@@ -844,6 +841,40 @@ app.layout = html.Div(
         html.Div(
             className="nine columns div-right-panel",
             children=[
+
+                html.Div(
+                    id='tabs', children=[
+                    dcc.Tabs(
+                        id='tabs-with-classes',
+                        value='tab-1',
+                        parent_className='custom-tabs',
+                        className='custom-tabs-container',
+                        children=[
+                            dcc.Tab(
+                                label='MCP Plot',
+                                value='tab-1',
+                                className='custom-tab',
+                                selected_className='custom-tab--selected'
+                            ),
+                            dcc.Tab(
+                                label='MCP Forecast',
+                                value='tab-2',
+                                className='custom-tab',
+                                selected_className='custom-tab--selected'
+                            ),
+                            dcc.Tab(
+                                label='Options',
+                                value='tab-3',
+                                className='custom-tab',
+                                selected_className='custom-tab--selected'
+                            ),
+
+                        ]
+                     )]
+
+
+                ),
+
                 # Charts Div
                 html.Div(
                     id="charts",
@@ -1174,6 +1205,60 @@ def update_time(n):
 @app.callback(Output("news", "children"), [Input("i_news", "n_intervals")])
 def update_news_div(n):
     return update_news()
+
+@app.callback(Output("charts", 'children'), [Input('tabs-with-classes', 'value')])
+def render_content(tab):
+    print(tab)
+    if tab == 'tab-1':
+        df = pd.read_csv('PTF-03012020.csv')
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['Ask'], name="TL", line_color='deepskyblue'))
+
+        fig.update_layout(title_text='Time Series with Rangeslider', xaxis_rangeslider_visible=True)
+
+        return html.Div(style={'text-align': 'Center'} , children=[
+                html.Br(),
+                html.Div(style={'display': 'inline-block'}, children=[
+                    html.Div(style={'display': 'inline-block'}, children= [
+                        html.Label("Start Date "),
+                        dcc.DatePickerSingle(placeholder=datetime.datetime.now().date()),
+                    ]),
+                    html.Div(style={'display': 'inline-block'}, children=[
+                        html.Label(" End Date "),
+                        dcc.DatePickerSingle(placeholder=datetime.datetime.now().date()),
+                    ]),
+                ]),
+            html.Br(),
+            html.Br(),
+
+            html.Div(style={'display': 'inline-block'}, children=
+            dcc.Checklist(style={'display': 'inline-block'},
+                options=[
+                    {'label': 'TL/MWh', 'value': 'TL'},
+                    {'label': 'EUR/MWh', 'value': 'EUR'},
+                    {'label': 'USD/MWh', 'value': 'USD'}
+                ],
+                value=['TL', 'EUR', 'USD'],
+                labelStyle={'display': 'inline-block'}
+                )
+            ),
+
+            html.Br(),
+            html.Div(
+                dcc.Graph(id="Stock Chart", figure=fig)
+            )])
+
+
+    elif tab == 'tab-2':
+        return html.Div([
+            html.H3('Tab content 2')
+        ])
+    elif tab == 'tab-3':
+        return html.Div([
+            html.H3('Tab content 3')
+        ])
 
 
 if __name__ == "__main__":

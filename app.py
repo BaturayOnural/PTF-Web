@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import csv
 import json
 import base64
 import datetime
@@ -15,8 +16,12 @@ import plotly.graph_objs as go
 import plotly.express as px
 
 from dash.dependencies import Input, Output, State
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from plotly import tools
-
+from plotly.graph_objs.layout import yaxis, xaxis
+from plotly.subplots import make_subplots
+import os
 
 app = dash.Dash(
     __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
@@ -56,10 +61,10 @@ def update_news():
     json_data = news_requests.json()["articles"]
     df = pd.DataFrame(json_data)
     df = pd.DataFrame(df[["title", "url"]])
-    max_rows = 5
+    max_rows = 10
     return html.Div(
         children=[
-            html.P(className="p-news", children="Headlines"),
+            html.P(className="p-news", children="Warnings"),
             html.P(
                 className="p-news float-right",
                 children="Last update : "
@@ -851,19 +856,19 @@ app.layout = html.Div(
                         className='custom-tabs-container',
                         children=[
                             dcc.Tab(
-                                label='MCP Plot',
+                                label='DAM',
                                 value='tab-1',
                                 className='custom-tab',
                                 selected_className='custom-tab--selected'
                             ),
                             dcc.Tab(
-                                label='MCP Forecast',
+                                label='IM',
                                 value='tab-2',
                                 className='custom-tab',
                                 selected_className='custom-tab--selected'
                             ),
                             dcc.Tab(
-                                label='Options',
+                                label='Flow',
                                 value='tab-3',
                                 className='custom-tab',
                                 selected_className='custom-tab--selected'
@@ -875,12 +880,66 @@ app.layout = html.Div(
 
                 ),
 
+                html.Div(style={'text-align': 'Center'} , children=[
+                html.Br(),
+                html.Div(style={'display': 'inline-block'}, children=[
+                    html.Div(style={'display': 'inline-block'}, children= [
+                        html.Label("Start Date "),
+                        dcc.DatePickerSingle(id="begin_date", placeholder=datetime.datetime.now().date()),
+                    ]),
+                    html.Div(style={'display': 'inline-block'}, children=[
+                        html.Label(" End Date "),
+                        dcc.DatePickerSingle(id="end_date", placeholder=datetime.datetime.now().date()),
+                    ]),
+                    html.Div(style={'display': 'inline-block'}, children=[
+                    html.Label(" Beginning Hour "),
+                    dcc.Input(
+                        id="begin_hour",
+                        type="number",
+                        min = 0,
+                        max = 24,
+                        placeholder="0",
+
+                    )]),
+                    html.Div(style={'display': 'inline-block'}, children=[
+                    html.Label(" Ending Hour "),
+                    dcc.Input(
+                        id="end_hour",
+                        type="number",
+                        min=0,
+                        max=24,
+                        placeholder="24"
+                    )]),
+                    html.Div(style={'display': 'inline-block'}, children=[
+                    html.Label(" Forecast Horizon(Days) "),
+                    dcc.Input(
+                        id="number_horizon",
+                        type="number",
+                        min=1,
+                        max=10,
+                        placeholder="1"
+                    )]),
+
+                    html.Div(style={'display': 'inline-block'}, children=[
+                        html.Label("     "),
+                        html.Button('Apply', id='apply-button'),
+                    ]),
+                ]),
+            html.Br(),
+            html.Br(),
+
+            html.Br(),]),
+            html.Div(
                 # Charts Div
-                html.Div(
-                    id="charts",
-                    className="row",
-                    children=[chart_div(pair) for pair in currencies],
-                ),
+                id="Charts-general", children=[
+                    html.Div(
+                        id="charts",
+                        className="row",
+
+                    )
+
+                ]
+            ),
             ],
         ),
         # Hidden div that stores all clicked charts (EURUSD, USDCHF, etc.)
@@ -1087,27 +1146,6 @@ for pair in currencies:
         [Input(pair + "summary", "n_clicks")],
     )(generate_contents_for_left_panel())
 
-    # Callback for className of div for graphs
-    app.callback(
-        Output(pair + "graph_div", "className"), [Input("charts_clicked", "children")]
-    )(generate_show_hide_graph_div_callback(pair))
-
-    # Callback to update the actual graph
-    app.callback(
-        Output(pair + "chart", "figure"),
-        [
-            Input("i_tris", "n_intervals"),
-            Input(pair + "dropdown_period", "value"),
-            Input(pair + "chart_type", "value"),
-            Input(pair + "studies", "value"),
-            Input("charts_clicked", "children"),
-        ],
-        [
-            State(pair + "ask", "children"),
-            State(pair + "bid", "children"),
-            State(pair + "chart", "figure"),
-        ],
-    )(generate_figure_callback(pair))
 
     # updates the ask and bid prices
     app.callback(
@@ -1120,80 +1158,6 @@ for pair in currencies:
         ],
     )(generate_ask_bid_row_callback(pair))
 
-    # close graph by setting to 0 n_clicks property
-    app.callback(
-        Output(pair + "Button_chart", "n_clicks"),
-        [Input(pair + "close", "n_clicks")],
-        [State(pair + "Button_chart", "n_clicks")],
-    )(generate_close_graph_callback())
-
-    # show or hide graph menu
-    app.callback(
-        Output(pair + "menu", "className"),
-        [Input(pair + "menu_button", "n_clicks")],
-        [State(pair + "menu", "className")],
-    )(generate_open_close_menu_callback())
-
-    # stores in hidden div name of clicked tab name
-    app.callback(
-        [
-            Output(pair + "menu_tab", "children"),
-            Output(pair + "style_header", "className"),
-            Output(pair + "studies_header", "className"),
-        ],
-        [
-            Input(pair + "style_header", "n_clicks_timestamp"),
-            Input(pair + "studies_header", "n_clicks_timestamp"),
-        ],
-    )(generate_active_menu_tab_callback())
-
-    # hide/show STYLE tab content if clicked or not
-    app.callback(
-        Output(pair + "style_tab", "style"), [Input(pair + "menu_tab", "children")]
-    )(generate_style_content_tab_callback())
-
-    # hide/show MENU tab content if clicked or not
-    app.callback(
-        Output(pair + "studies_tab", "style"), [Input(pair + "menu_tab", "children")]
-    )(generate_studies_content_tab_callback())
-
-    # show modal
-    app.callback(Output(pair + "modal", "style"), [Input(pair + "Buy", "n_clicks")])(
-        generate_modal_open_callback()
-    )
-
-    # set modal value SL to O
-    app.callback(Output(pair + "SL", "value"), [Input(pair + "Buy", "n_clicks")])(
-        generate_clean_sl_callback()
-    )
-
-    # set modal value TP to O
-    app.callback(Output(pair + "TP", "value"), [Input(pair + "Buy", "n_clicks")])(
-        generate_clean_tp_callback()
-    )
-
-    # hide modal
-    app.callback(
-        Output(pair + "Buy", "n_clicks"),
-        [
-            Input(pair + "closeModal", "n_clicks"),
-            Input(pair + "button_order", "n_clicks"),
-        ],
-    )(generate_modal_close_callback())
-
-    # updates modal figure
-    app.callback(
-        Output(pair + "modal_graph", "figure"),
-        [Input(pair + "index", "children"), Input(pair + "Buy", "n_clicks")],
-        [State(pair + "modal_graph", "figure")],
-    )(generate_modal_figure_callback(pair))
-
-# updates hidden div with all the clicked charts
-app.callback(
-    Output("charts_clicked", "children"),
-    [Input(pair + "Button_chart", "n_clicks") for pair in currencies],
-    [State("charts_clicked", "children")],
-)(generate_chart_button_callback())
 
 # Callback to update live clock
 @app.callback(Output("live_clock", "children"), [Input("interval", "n_intervals")])
@@ -1206,50 +1170,82 @@ def update_time(n):
 def update_news_div(n):
     return update_news()
 
-@app.callback(Output("charts", 'children'), [Input('tabs-with-classes', 'value')])
-def render_content(tab):
+def interpret(n, begin_hour, end_hour, number_horizon, begin_date, end_date):
+    print(begin_hour, end_hour, number_horizon, begin_date, end_date)
+
+    #connect i/o -> make sure you are updating the main graph - left side
+    create_csv(12,12,12,12)
+
+
+
+@app.callback(Output("Charts-general", 'children'), [Input('tabs-with-classes', 'value'), Input('apply-button', 'n_clicks')], [
+        State('begin_hour', 'value'), State('end_hour', 'value'), State('number_horizon', 'value'), State('begin_date', 'date'), State('end_date', 'date')    ])
+def render_content(tab, n, begin_hour, end_hour, number_horizon, begin_date, end_date):
     print(tab)
     if tab == 'tab-1':
-        df = pd.read_csv('PTF-03012020.csv')
 
-        fig = go.Figure()
+        nms = [begin_date, end_date, begin_hour, end_hour]
 
-        fig.add_trace(go.Scatter(x=df['Date'], y=df['Ask'], name="TL", line_color='deepskyblue'))
+        f = open('filters.csv', 'w')
 
-        fig.update_layout(title_text='Time Series with Rangeslider', xaxis_rangeslider_visible=True)
+        with f:
 
-        return html.Div(style={'text-align': 'Center'} , children=[
-                html.Br(),
-                html.Div(style={'display': 'inline-block'}, children=[
-                    html.Div(style={'display': 'inline-block'}, children= [
-                        html.Label("Start Date "),
-                        dcc.DatePickerSingle(placeholder=datetime.datetime.now().date()),
-                    ]),
-                    html.Div(style={'display': 'inline-block'}, children=[
-                        html.Label(" End Date "),
-                        dcc.DatePickerSingle(placeholder=datetime.datetime.now().date()),
-                    ]),
-                ]),
-            html.Br(),
-            html.Br(),
+            writer = csv.writer(f)
+            writer.writerow(nms)
 
-            html.Div(style={'display': 'inline-block'}, children=
-            dcc.Checklist(style={'display': 'inline-block'},
-                options=[
-                    {'label': 'TL/MWh', 'value': 'TL'},
-                    {'label': 'EUR/MWh', 'value': 'EUR'},
-                    {'label': 'USD/MWh', 'value': 'USD'}
-                ],
-                value=['TL', 'EUR', 'USD'],
-                labelStyle={'display': 'inline-block'}
-                )
+        create_csv(begin_date, end_date, begin_hour, end_hour)
+        df = pd.read_csv('trace_tl.csv')
+
+        fig = make_subplots(rows=1, cols=1, shared_yaxes=True, shared_xaxes=True)
+
+        fig.add_trace(
+            go.Scatter(x=df['Date'], y=df['TL'], name="MCP-TL", line_color='deepskyblue'),
+
+            row=1, col=1
+        )
+        fig.update_layout(
+            title="MCP Data w/Forecast",
+            xaxis_title="Dates",
+            yaxis_title="TL Price",
+            font=dict(
+                family="Courier New, monospace",
+                size=14,
+                color="#7f7f7f"
             ),
+          )
 
-            html.Br(),
+        fig["layout"].update(paper_bgcolor="#21252C", plot_bgcolor="#21252C")
+
+        df2 = pd.read_csv('forecast.csv')
+        df3 = pd.read_csv('forecast_lower.csv')
+        df4 = pd.read_csv('forecast_upper.csv')
+
+        fig.add_trace(
+            go.Scatter(x=df2['Date'], y=df2['TL'], name="Mean"),
+            row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(x=df3['Date'], y=df3['TL'], name="Lower Bound"),
+            row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(x=df4['Date'], y=df4['TL'], name="Upper Bound"),
+            row=1, col=1
+        )
+
+
+        fig.update_xaxes(showgrid=False, zeroline=False)
+        fig.update_yaxes(showgrid=False, zeroline=False)
+        fig.update_xaxes(showgrid=False, zeroline=False, col=1)
+        fig.update_yaxes(showgrid=False, zeroline=False, col=1)
+
+
+
+        return [
             html.Div(
                 dcc.Graph(id="Stock Chart", figure=fig)
-            )])
-
+            ),
+        ]
 
     elif tab == 'tab-2':
         return html.Div([
@@ -1260,6 +1256,9 @@ def render_content(tab):
             html.H3('Tab content 3')
         ])
 
+
+def create_csv(begin_date, end_date, begin_hour, end_hour):
+    os.system("python3 create_csv_traces.py")
 
 if __name__ == "__main__":
     app.run_server(debug=True)

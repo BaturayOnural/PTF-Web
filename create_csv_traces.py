@@ -70,7 +70,8 @@ day2 = int(end_date1[8:])
 start_date2 = datetime.datetime(year, month, day)
 end_date2 = datetime.datetime(year2, month2, day2)
 
-rows = db.session.query(MCP).filter(MCP.date.between(start_date2, end_date2))
+rows = db.session.query(MCP).filter(MCP.date.between(start_date2, end_date2)). \
+filter(MCP.hour.between(start_hour, end_hour)).all()
 
 #################################  TL
 fp = open('trace_tl.csv', 'w')

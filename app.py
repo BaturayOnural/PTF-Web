@@ -962,15 +962,28 @@ app.layout = html.Div(
 
                 ]
             ),
-            html.Div(
-                id="SOP",
-                children=[
+            html.Div(style={'text-align': 'Center'}, children=[
+                html.Div(
+                    id="SOP",
+                    children=[
 
+                    ],
+                    style={'display': 'inline-table', 'text-align': 'center'}
 
-                ],
-                style= {'display': 'inline-table', 'text-align':'center'}
+                ),
 
-            )
+                html.Div(
+                    id="SOP2",
+                    children=[
+
+                    ],
+                    style={'display': 'inline-table', 'text-align': 'center'}
+
+                ),
+            ]
+
+            ),
+
             ],
         ),
         # Hidden div that stores all clicked charts (EURUSD, USDCHF, etc.)
@@ -1262,6 +1275,69 @@ def visible(n):
         ], style={'display':'inline-table'})
 
 @app.callback(Output("SOP", 'style'), [Input('apply-button2', 'n_clicks')])
+def visible(n):
+    if n == None:
+        return {'display': 'none'}
+    elif n%2 == 0:
+        return {'display': 'inline-table'}
+    else:
+        return {'display': 'none'}
+
+
+@app.callback(Output("SOP2", 'children'), [Input('apply-button', 'n_clicks')])
+def visible(n):
+    df = pd.read_csv('average.csv')
+
+    if n == None:
+        return html.Div([
+            dash_table.DataTable(
+                id='table',
+                columns=[{"name": i, "id": i} for i in df.columns],
+                data=df.to_dict("rows"),
+                style_header={'backgroundColor': 'rgb(30, 30, 30)'},
+                style_cell={
+                    'backgroundColor': 'rgb(50, 50, 50)',
+                    'color': 'white'
+                },
+
+            )
+        ], style={'display':'inline-block'})
+
+
+    elif n%2 == 0:
+        return html.Div([
+            dash_table.DataTable(
+                id='table',
+                columns=[{"name": i, "id": i} for i in df.columns],
+                data=df.to_dict("rows"),
+                style_header={'backgroundColor': 'rgb(30, 30, 30)'},
+                style_cell={
+                    'backgroundColor': 'rgb(50, 50, 50)',
+                    'color': 'white'
+                },
+
+            )
+        ], style={'display':'inline-block'})
+    else:
+        return html.Div([
+            html.Table(
+                dash_table.DataTable(
+                    id='table',
+                    columns=[{"name": i, "id": i} for i in df.columns],
+                    data=df.to_dict("rows"),
+                    style_header={'backgroundColor': 'rgb(30, 30, 30)'},
+                    style_cell={
+                        'backgroundColor': 'rgb(50, 50, 50)',
+                        'color': 'white'
+                    },
+
+                )
+            ,style={'display':'inline-table'}),
+
+
+        ], style={'display':'inline-table'})
+
+@app.callback(Output("SOP2", 'style'), [Input('apply-button', 'n_clicks')])
 def visible(n):
     if n == None:
         return {'display': 'none'}

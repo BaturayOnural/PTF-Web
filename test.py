@@ -1,33 +1,17 @@
 import dash
-from dash.dependencies import Input, Output
-import dash_core_components as dcc
-import dash_html_components as html
-from datetime import datetime as dtime
-
-app = dash.Dash()
+import dash_table
+import pandas as pd
 
 
-app.config['suppress_callback_exceptions'] = True
-app.layout = html.Div([
-    dcc.DatePickerRange(
-        id='Dr1',
-        clearable=True,
-        reopen_calendar_on_clear=True,
-        start_date_placeholder_text='Select a date',
-        end_date=dtime.today().strftime("%Y-%m-%d")
-    ),
-    html.Div(id='output')
-])
+df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/solar.csv')
 
+app = dash.Dash(__name__)
 
-@app.callback(
-    Output('output', 'children'),
-    [Input('Dr1', 'start_date'),
-     Input('Dr1', 'end_date')])
-def dates_selected(start_date, end_date):
-    value = "From- %s  To-   %s" % (start_date, end_date)
-    return value
-
+app.layout = dash_table.DataTable(
+    id='table',
+    columns=[{"name": i, "id": i} for i in df.columns],
+    data=df.to_dict("rows"),
+)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

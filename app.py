@@ -22,6 +22,7 @@ from plotly import tools
 from plotly.graph_objs.layout import yaxis, xaxis
 from plotly.subplots import make_subplots
 import os
+import dash_table
 
 app = dash.Dash(
     __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
@@ -62,6 +63,8 @@ def update_news():
     df = pd.DataFrame(json_data)
     df = pd.DataFrame(df[["title", "url"]])
     max_rows = 10
+    information = ["Low water level @P1", "Low water level @P3", "Heavy rain expected @P6", "Average capacity too low @P4", "Major Breakdown @P7",
+                   "Low water level @P7", "Possible improvements @P8", "Heavy rain expected @P9", "Heavy rain expected @P11", "Major Breakdown @P13"]
     return html.Div(
         children=[
             html.P(className="p-news", children="Warnings"),
@@ -79,7 +82,7 @@ def update_news():
                                 children=[
                                     html.A(
                                         className="td-link",
-                                        children=df.iloc[i]["title"],
+                                        children=information[i],
                                         href=df.iloc[i]["url"],
                                         target="_blank",
                                     )
@@ -800,16 +803,11 @@ app.layout = html.Div(
                 html.Div(
                     className="div-info",
                     children=[
+                        html.H2("MCP-Web", style={'display':'center'}),
+                        html.H2(className="title-header", children="MCP-Web"),
                         html.P(
                             """
-                            MCP-Web
-                            """
-                        ),
-                        html.H6(className="title-header", children="MCP-Web"),
-                        html.P(
-                            """
-                            This app continually queries csv files and updates MCP charts with the provided data.
-                            The app also serves a view of predictions over the previous MCP data.
+                            Summary of Market Data and warnings from plants.
                             """
                         ),
                     ],
@@ -860,6 +858,7 @@ app.layout = html.Div(
                                 value='tab-1',
                                 className='custom-tab',
                                 selected_className='custom-tab--selected'
+
                             ),
                             dcc.Tab(
                                 label='IM',
@@ -910,22 +909,45 @@ app.layout = html.Div(
                         max=24,
                         placeholder="24"
                     )]),
+                    html.Div(children=[
+                        html.Label(" Forecast Horizon(Days) "),
+                        dcc.Input(
+                            id="number_horizon",
+                            type="number",
+                            min=1,
+                            max=10,
+                            placeholder="1"
+                        )], style={'display': 'inline-block'}),
                     html.Div(style={'display': 'inline-block'}, children=[
-                    html.Label(" Forecast Horizon(Days) "),
+                        html.Label("     "),
+                        html.Button('Apply Filtering&Forecast', id='apply-button'),
+                    ]),
+                ]),
+            html.Br(),
+            html.Br(),
+
+            html.Div( children=[
+                html.Div(children=[
+                    html.Label(" Total # Hours "),
                     dcc.Input(
-                        id="number_horizon",
+                        id="number_total",
                         type="number",
                         min=1,
                         max=10,
                         placeholder="1"
-                    )]),
-
-                    html.Div(style={'display': 'inline-block'}, children=[
-                        html.Label("     "),
-                        html.Button('Apply', id='apply-button'),
-                    ]),
-                ]),
-            html.Br(),
+                    )], style={'display': 'inline-block'}),
+                html.Div(children=[
+                    html.Label(" Preferred Hours "),
+                    dcc.Input(
+                        id="pref_hours",
+                        type="text",
+                        placeholder="11-17"
+                    )], style={'display': 'inline-block'}),
+                html.Div( children=[
+                     html.Label("     "),
+                    html.Button('Suggest Operating Period', id='apply-button2'),
+                ],style={'display': 'inline-block'} ),
+            ], style={'display': 'inline-block'}),
             html.Br(),
 
             html.Br(),]),
@@ -940,6 +962,15 @@ app.layout = html.Div(
 
                 ]
             ),
+            html.Div(
+                id="SOP",
+                children=[
+
+
+                ],
+                style= {'display': 'inline-table', 'text-align':'center'}
+
+            )
             ],
         ),
         # Hidden div that stores all clicked charts (EURUSD, USDCHF, etc.)
@@ -1177,13 +1208,73 @@ def interpret(n, begin_hour, end_hour, number_horizon, begin_date, end_date):
     create_csv(12,12,12,12)
 
 
+@app.callback(Output("SOP", 'children'), [Input('apply-button2', 'n_clicks')])
+def visible(n):
+    df = pd.read_csv('suggestion.csv')
+
+    if n == None:
+        return html.Div([
+            dash_table.DataTable(
+                id='table',
+                columns=[{"name": i, "id": i} for i in df.columns],
+                data=df.to_dict("rows"),
+                style_header={'backgroundColor': 'rgb(30, 30, 30)'},
+                style_cell={
+                    'backgroundColor': 'rgb(50, 50, 50)',
+                    'color': 'white'
+                },
+
+            )
+        ], style={'display':'inline-block'})
+
+
+    elif n%2 == 0:
+        return html.Div([
+            dash_table.DataTable(
+                id='table',
+                columns=[{"name": i, "id": i} for i in df.columns],
+                data=df.to_dict("rows"),
+                style_header={'backgroundColor': 'rgb(30, 30, 30)'},
+                style_cell={
+                    'backgroundColor': 'rgb(50, 50, 50)',
+                    'color': 'white'
+                },
+
+            )
+        ], style={'display':'inline-block'})
+    else:
+        return html.Div([
+            html.Table(
+                dash_table.DataTable(
+                    id='table',
+                    columns=[{"name": i, "id": i} for i in df.columns],
+                    data=df.to_dict("rows"),
+                    style_header={'backgroundColor': 'rgb(30, 30, 30)'},
+                    style_cell={
+                        'backgroundColor': 'rgb(50, 50, 50)',
+                        'color': 'white'
+                    },
+
+                )
+            ,style={'display':'inline-table'}),
+
+
+        ], style={'display':'inline-table'})
+
+@app.callback(Output("SOP", 'style'), [Input('apply-button2', 'n_clicks')])
+def visible(n):
+    if n == None:
+        return {'display': 'none'}
+    elif n%2 == 0:
+        return {'display': 'inline-table'}
+    else:
+        return {'display': 'none'}
 
 @app.callback(Output("Charts-general", 'children'), [Input('tabs-with-classes', 'value'), Input('apply-button', 'n_clicks')], [
         State('begin_hour', 'value'), State('end_hour', 'value'), State('number_horizon', 'value'), State('begin_date', 'date'), State('end_date', 'date')    ])
 def render_content(tab, n, begin_hour, end_hour, number_horizon, begin_date, end_date):
-    print(tab)
     if tab == 'tab-1':
-
+        print(number_horizon)
         nms = [begin_date, end_date, begin_hour, end_hour]
 
         f = open('filters.csv', 'w')
@@ -1196,7 +1287,7 @@ def render_content(tab, n, begin_hour, end_hour, number_horizon, begin_date, end
         create_csv(begin_date, end_date, begin_hour, end_hour)
         df = pd.read_csv('trace_tl.csv')
 
-        fig = make_subplots(rows=1, cols=1, shared_yaxes=True, shared_xaxes=True)
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("MCP Data","MCP Forecast"))
 
         fig.add_trace(
             go.Scatter(x=df['Date'], y=df['TL'], name="MCP-TL", line_color='deepskyblue'),
@@ -1222,15 +1313,15 @@ def render_content(tab, n, begin_hour, end_hour, number_horizon, begin_date, end
 
         fig.add_trace(
             go.Scatter(x=df2['Date'], y=df2['TL'], name="Mean"),
-            row=1, col=1
+            row=1, col=2
         )
         fig.add_trace(
             go.Scatter(x=df3['Date'], y=df3['TL'], name="Lower Bound"),
-            row=1, col=1
+            row=1, col=2
         )
         fig.add_trace(
             go.Scatter(x=df4['Date'], y=df4['TL'], name="Upper Bound"),
-            row=1, col=1
+            row=1, col=2
         )
 
 

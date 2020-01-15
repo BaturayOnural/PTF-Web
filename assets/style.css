@@ -275,8 +275,27 @@
     display: inline-block;
     margin-left: .5rem;
     font-weight: normal; }
-  
-  
+
+
+    /* Tabs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– */
+.custom-tabs-container {
+    width: 100%;
+}
+.custom-tabs {
+    background-color: #1EAEDB;
+    border-bottom: 1px solid #d6d6d6;
+}
+
+.custom-tab {
+    color:#586069;
+    background-color: #ededed;
+    font-family: "Courier New, monospace";
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
   /* Lists
   –––––––––––––––––––––––––––––––––––––––––––––––––– */
   ul {
@@ -414,7 +433,6 @@ body{
 .table-orders-empty{
   padding: 24px;
 }
-
 tr{
   padding: 12px;
 }

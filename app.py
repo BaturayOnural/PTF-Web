@@ -23,6 +23,9 @@ from plotly.graph_objs.layout import yaxis, xaxis
 from plotly.subplots import make_subplots
 import os
 import dash_table
+import tab_1
+import tab_2
+import tab_3
 
 app = dash.Dash(
     __name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}]
@@ -62,16 +65,17 @@ def update_news():
     json_data = news_requests.json()["articles"]
     df = pd.DataFrame(json_data)
     df = pd.DataFrame(df[["title", "url"]])
-    max_rows = 10
+    max_rows = 9
     information = ["Low water level @P1", "Low water level @P3", "Heavy rain expected @P6", "Average capacity too low @P4", "Major Breakdown @P7",
-                   "Low water level @P7", "Possible improvements @P8", "Heavy rain expected @P9", "Heavy rain expected @P11", "Major Breakdown @P13"]
+                   "Low water level @P7", "Possible improvements @P8", "Heavy rain expected @P9", "Heavy rain expected @P11"]
     return html.Div(
         children=[
-            html.P(className="p-news", children="Warnings"),
+            html.P(className="p-news", children="Warnings",style={'font-size':'17px'}),
             html.P(
                 className="p-news float-right",
                 children="Last update : "
                 + datetime.datetime.now().strftime("%H:%M:%S"),
+                style={'font-size':'17px'}
             ),
             html.Table(
                 className="table-news",
@@ -85,6 +89,7 @@ def update_news():
                                         children=information[i],
                                         href=df.iloc[i]["url"],
                                         target="_blank",
+                                        style={'font-size':'17px'}
                                     )
                                 ]
                             )
@@ -781,7 +786,22 @@ def modal(pair):
             )
         ],
     )
+tabs_styles = {
+    'height': '65px'
+}
+tab_style = {
+    'borderBottom': '0px solid #d6d6d6',
+    'padding': '15px',
+    'fontWeight': 'bold'
+}
 
+tab_selected_style = {
+    'borderTop': '0px solid #d6d6d6',
+    'borderBottom': '0px solid #d6d6d6',
+    'backgroundColor': '#21252C',
+    'color': '#b2b2b2',
+    'padding': '15px'
+}
 
 # Dash App Layout
 app.layout = html.Div(
@@ -840,11 +860,45 @@ app.layout = html.Div(
                 ),
             ],
         ),
+html.Div(
+            id='tabs-1', children=[
+                dcc.Tabs(
+                    id='tabs-with-classes-1',
+                    value='tabs-1',
+                    parent_className='custom-tabs',
+                    className='custom-tabs-container',
+                    children=[
+                        dcc.Tab(
+                            label='MCP Data Analytics',
+                            value='tabs-1',
+                            className='custom-tab',
+                            selected_className='custom-tab--selected',
+                            style=tab_style, selected_style=tab_selected_style
+
+                        ),
+                        dcc.Tab(
+                            label='Plant Information',
+                            value='tabs-2',
+                            className='custom-tab',
+                            selected_className='custom-tab--selected',
+                            style=tab_style, selected_style=tab_selected_style
+                        ),
+                        dcc.Tab(
+                            label='DAM & IM Planning',
+                            value='tabs-3',
+                            className='custom-tab',
+                            selected_className='custom-tab--selected',
+                            style=tab_style, selected_style=tab_selected_style
+                        ),
+                    ]
+                )]
+
+        ),
         # Right Panel Div
         html.Div(
+            id='right_panel',
             className="nine columns div-right-panel",
             children=[
-
                 html.Div(
                     id='tabs', children=[
                     dcc.Tabs(
@@ -873,14 +927,15 @@ app.layout = html.Div(
                                 selected_className='custom-tab--selected'
                             ),
 
-                        ]
+                        ],
+
                      )]
 
 
                 ),
 
                 html.Div(style={'text-align': 'Center'} , children=[
-                html.Br(),
+                
                 html.Div(style={'display': 'inline-block'}, children=[
                     html.Div(style={'display': 'inline-block'}, children= [
                         html.Label("Start Date "),
@@ -898,6 +953,7 @@ app.layout = html.Div(
                         min = 0,
                         max = 24,
                         placeholder="0",
+                        value=0,
 
                     )]),
                     html.Div(style={'display': 'inline-block'}, children=[
@@ -907,8 +963,15 @@ app.layout = html.Div(
                         type="number",
                         min=0,
                         max=24,
-                        placeholder="24"
+                        placeholder="24",
+                        value=24,
                     )]),
+                    html.Div(style={'display': 'inline-block'}, children=[
+                        html.Label("     "),
+                        html.Button('Apply Filtering', id='apply-button'),
+                    ]),
+                    html.Br(),
+                    html.Br(),
                     html.Div(children=[
                         html.Label(" Forecast Horizon(Days) "),
                         dcc.Input(
@@ -920,7 +983,7 @@ app.layout = html.Div(
                         )], style={'display': 'inline-block'}),
                     html.Div(style={'display': 'inline-block'}, children=[
                         html.Label("     "),
-                        html.Button('Apply Filtering&Forecast', id='apply-button'),
+                        html.Button('Apply Forecasting', id='apply-button-forecast'),
                     ]),
                 ]),
             html.Br(),
@@ -961,31 +1024,31 @@ app.layout = html.Div(
                     )
 
                 ]
-            ),
-            html.Div(style={'text-align': 'Center'}, children=[
-                html.Div(
-                    id="SOP",
-                    children=[
-
-                    ],
-                    style={'display': 'inline-table', 'text-align': 'center'}
-
-                ),
-
-                html.Div(
-                    id="SOP2",
-                    children=[
-
-                    ],
-                    style={'display': 'inline-table', 'text-align': 'center'}
-
-                ),
-            ]
-
-            ),
+            )  ,        html.Div(style={'text-align': 'Center'}, children=[
+        html.Div(
+            id="SOP",
+            children=[
 
             ],
+            style={'display': 'inline-table', 'text-align': 'center'}
+
         ),
+
+        html.Div(
+            id="SOP2",
+            children=[
+
+            ],
+            style={'display': 'inline-table', 'text-align': 'center'}
+
+        ),
+    ])
+
+            ]
+        ),
+
+
+
         # Hidden div that stores all clicked charts (EURUSD, USDCHF, etc.)
         html.Div(id="charts_clicked", style={"display": "none"}),
         # Hidden div for each pair that stores orders
@@ -1234,7 +1297,10 @@ def visible(n):
                 style_header={'backgroundColor': 'rgb(30, 30, 30)'},
                 style_cell={
                     'backgroundColor': 'rgb(50, 50, 50)',
-                    'color': 'white'
+                    'color': 'white',
+                    'text_align': 'center',
+                    'font_size': '20px',
+
                 },
 
             )
@@ -1250,7 +1316,9 @@ def visible(n):
                 style_header={'backgroundColor': 'rgb(30, 30, 30)'},
                 style_cell={
                     'backgroundColor': 'rgb(50, 50, 50)',
-                    'color': 'white'
+                    'color': 'white',
+                    'text_align': 'center',
+                    'font_size': '20px',
                 },
 
             )
@@ -1265,7 +1333,9 @@ def visible(n):
                     style_header={'backgroundColor': 'rgb(30, 30, 30)'},
                     style_cell={
                         'backgroundColor': 'rgb(50, 50, 50)',
-                        'color': 'white'
+                        'color': 'white',
+                        'text_align': 'center',
+                        'font_size': '20px',
                     },
 
                 )
@@ -1275,69 +1345,6 @@ def visible(n):
         ], style={'display':'inline-table'})
 
 @app.callback(Output("SOP", 'style'), [Input('apply-button2', 'n_clicks')])
-def visible(n):
-    if n == None:
-        return {'display': 'none'}
-    elif n%2 == 0:
-        return {'display': 'inline-table'}
-    else:
-        return {'display': 'none'}
-
-
-@app.callback(Output("SOP2", 'children'), [Input('apply-button', 'n_clicks')])
-def visible(n):
-    df = pd.read_csv('average.csv')
-
-    if n == None:
-        return html.Div([
-            dash_table.DataTable(
-                id='table',
-                columns=[{"name": i, "id": i} for i in df.columns],
-                data=df.to_dict("rows"),
-                style_header={'backgroundColor': 'rgb(30, 30, 30)'},
-                style_cell={
-                    'backgroundColor': 'rgb(50, 50, 50)',
-                    'color': 'white'
-                },
-
-            )
-        ], style={'display':'inline-block'})
-
-
-    elif n%2 == 0:
-        return html.Div([
-            dash_table.DataTable(
-                id='table',
-                columns=[{"name": i, "id": i} for i in df.columns],
-                data=df.to_dict("rows"),
-                style_header={'backgroundColor': 'rgb(30, 30, 30)'},
-                style_cell={
-                    'backgroundColor': 'rgb(50, 50, 50)',
-                    'color': 'white'
-                },
-
-            )
-        ], style={'display':'inline-block'})
-    else:
-        return html.Div([
-            html.Table(
-                dash_table.DataTable(
-                    id='table',
-                    columns=[{"name": i, "id": i} for i in df.columns],
-                    data=df.to_dict("rows"),
-                    style_header={'backgroundColor': 'rgb(30, 30, 30)'},
-                    style_cell={
-                        'backgroundColor': 'rgb(50, 50, 50)',
-                        'color': 'white'
-                    },
-
-                )
-            ,style={'display':'inline-table'}),
-
-
-        ], style={'display':'inline-table'})
-
-@app.callback(Output("SOP2", 'style'), [Input('apply-button', 'n_clicks')])
 def visible(n):
     if n == None:
         return {'display': 'none'}
@@ -1372,8 +1379,7 @@ def render_content(tab, n, begin_hour, end_hour, number_horizon, begin_date, end
         )
         fig.update_layout(
             title="MCP Data w/Forecast",
-            xaxis_title="Dates",
-            yaxis_title="TL Price",
+            yaxis_title="Avg. TL Price",
             font=dict(
                 family="Courier New, monospace",
                 size=14,
@@ -1426,6 +1432,18 @@ def render_content(tab, n, begin_hour, end_hour, number_horizon, begin_date, end
 
 def create_csv(begin_date, end_date, begin_hour, end_hour):
     os.system("python3 create_csv_traces.py")
+
+
+@app.callback(Output('right_panel', 'children'),
+              [Input('tabs-with-classes-1', 'value')])
+def render_content_2(tab):
+    if tab == 'tabs-1':
+        return tab_1.tab_1_layout
+    elif tab == 'tabs-2':
+        return tab_2.tab_2_layout
+    elif tab == 'tabs-3':
+        return tab_3.tab_3_layout
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)

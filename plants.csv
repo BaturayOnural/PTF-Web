@@ -1,0 +1,6 @@
+Plant #,Plant Name,Capacity,Available Capacity,Water Level,MAX Water Level,MIN Water Level,Last Update,DSI
+1,Akhasan,200MW,150MW,124mt,147mt,25m,17-01-2020 08:30:12,
+2,Bayındır,220MW,160MW,144mt,165mt,25m,17-01-2020 08:30:12,
+3,Beylikova,140MW,110MW,85mt,132mt,15m,16-01-2020 17:20:27,
+4,Çamlıdere,140MW,120MW,80mt,127mt,15m,16-01-2020 17:20:27,
+5,Damsa,220MW,160MW,151mt,171mt,25m,16-01-2020 16:25:33,

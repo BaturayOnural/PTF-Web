@@ -13,10 +13,6 @@ import csv
 import csv
 import sys
 
-
-
-
-
 app2 = Flask(__name__)
 app2.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///MCPBase_TL.db'
 
@@ -24,39 +20,38 @@ db = SQLAlchemy(app2)
 
 
 class MCP(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime, nullable=False)
-    hour = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)
+	id = db.Column(db.Integer, primary_key=True)
+	date = db.Column(db.DateTime, nullable=False)
+	hour = db.Column(db.Integer, nullable=False)
+	price = db.Column(db.Float, nullable=False)
 
 
 f = open('filters.csv', 'r')
 
 with f:
+	reader = csv.reader(f)
 
-    reader = csv.reader(f)
-
-    count = 0
-    for row in reader:
-        for e in row:
-        	if count == 0:
-        		start_date1 = e
-        		count = count + 1
-        	elif count == 1:
-        		end_date1 = e
-        		count = count + 1
-        	elif count== 2:
-        		start_hour = e
-        		count = count + 1
-        	elif count ==3:
-        		end_hour = e
-        		count = count + 1
-        	else:
-        		print("Filtering error!")
-            
+	count = 0
+	for row in reader:
+		for e in row:
+			if count == 0:
+				start_date1 = e
+				count = count + 1
+			elif count == 1:
+				end_date1 = e
+				count = count + 1
+			elif count == 2:
+				start_hour = e
+				count = count + 1
+			elif count == 3:
+				end_hour = e
+				count = count + 1
+			else:
+				print("Filtering error!")
 
 print(start_hour)
 print(end_hour)
+
 
 year = int(start_date1[:4])
 month = int(start_date1[5:7])
@@ -66,12 +61,11 @@ year2 = int(end_date1[:4])
 month2 = int(end_date1[5:7])
 day2 = int(end_date1[8:])
 
-
 start_date2 = datetime.datetime(year, month, day)
 end_date2 = datetime.datetime(year2, month2, day2)
 
 rows = db.session.query(MCP).filter(MCP.date.between(start_date2, end_date2)). \
-filter(MCP.hour.between(start_hour, end_hour)).all()
+	filter(MCP.hour.between(start_hour, end_hour)).all()
 
 #################################  TL
 fp = open('trace_tl.csv', 'w')
@@ -79,11 +73,35 @@ myFile = csv.writer(fp)
 header = ["Date", "TL"]
 myFile.writerow(header)
 
+date_before = ""
+total_price = 0
+price_amount = 0
+
+first = True
 for row in rows:
-    date = row.date
-    price = row.price
-    data = [date, price]
-    myFile.writerow(data)
+	date = row.date.date()
+	if date == date_before:
+		total_price += row.price
+		price_amount += 1
+	else:
+		if first:
+			first = False
+			date_before = date
+			total_price += row.price
+			price_amount += 1
+		else:			
+			price_avg = total_price / price_amount
+			data = [date_before, price_avg]
+			myFile.writerow(data)
+			total_price = 0
+			price_amount = 0
+			total_price += row.price
+			price_amount += 1
+			date_before = date
+
+price_avg = total_price / price_amount
+data = [date_before, price_avg]
+myFile.writerow(data)
 fp.close()
 
 
